@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "日本人はどこまで学ぶようになったか — 学校基本調査から進学率の変化を探索するダッシュボード（実装予定）",
+  "description": "日本人はどこまで学ぶようになったか — 学校基本調査から進学率の変化を探索するダッシュボード",
   "license": "MIT",
   "engines": {
     "node": ">=22.18"

@@ -1,198 +1,109 @@
 /**
- * 住宅指標・形態カテゴリの表示定義。
+ * 進学率指標・学校種・性別の表示定義。
  */
 
-export type MetricKind = "count" | "rate" | "area";
-export type FormDim = "tenure" | "building" | "size" | "vacancy";
+export type Sex = "total" | "male" | "female";
 
-export interface MetricDef {
+export interface RateMetricDef {
   code: string;
   label: string;
-  /** 時代リストのグループ表示用。 */
   group: string;
-  kind: MetricKind;
-  /** 基礎データ側の件数／面積コード。 */
-  countCode?: string;
-  /** 社会生活統計指標側の率コード。 */
-  rateCode?: string;
-  /** 地域ビューに載せるか。 */
-  geo: boolean;
+  /** 年次統計 cat02 コード。 */
+  annualCode: string;
+  /**
+   * SSDS で 2017 年以降を埋めるときの計・男・女コード。
+   * 定義が近接する系列だけ接続する（docs/data-sources.md）。
+   */
+  ssds?: { total: string; male: string; female: string };
 }
 
-export interface FormCodeDef {
+export interface SchoolDef {
   code: string;
   label: string;
-  dim: FormDim;
-  /** SSDS 件数コード（vacancy 以外）。 */
-  countCode?: string;
-  level: number;
+  /** SSDS 在学者数コード。 */
+  countCode: string;
 }
 
-/** 時代・地域の指標。 */
-export const METRICS: readonly MetricDef[] = [
+export const SEXES: readonly { code: Sex; label: string; annualCode: string }[] = [
+  { code: "total", label: "計", annualCode: "0000000010" },
+  { code: "male", label: "男", annualCode: "0000000020" },
+  { code: "female", label: "女", annualCode: "0000000030" },
+] as const;
+
+export const RATE_METRICS: readonly RateMetricDef[] = [
   {
-    code: "total",
-    label: "総住宅数",
-    group: "ストック",
-    kind: "count",
-    countCode: "H1100",
-    geo: false,
+    code: "kindergarten",
+    label: "幼稚園就園率",
+    group: "就園",
+    annualCode: "0000000010",
   },
   {
-    code: "occupied",
-    label: "居住世帯あり",
-    group: "ストック",
-    kind: "count",
-    countCode: "H1101",
-    geo: false,
+    code: "kodomoen",
+    label: "認定こども園就園率",
+    group: "就園",
+    annualCode: "0000000090",
   },
   {
-    code: "vacant",
-    label: "空き家",
-    group: "空き家",
-    kind: "count",
-    countCode: "H110202",
-    rateCode: "#H01405",
-    geo: true,
+    code: "hs",
+    label: "高等学校等への進学率",
+    group: "高校",
+    annualCode: "0000000020",
   },
   {
-    code: "owned",
-    label: "持ち家",
-    group: "所有",
-    kind: "count",
-    countCode: "H1310",
-    rateCode: "#H01301",
-    geo: true,
+    code: "hs_no_corr",
+    label: "高校進学率（通信制除く）",
+    group: "高校",
+    annualCode: "0000000030",
+    ssds: { total: "E3801", male: "E380101", female: "E380102" },
   },
   {
-    code: "rented",
-    label: "借家",
-    group: "所有",
-    kind: "count",
-    countCode: "H1320",
-    rateCode: "#H01302",
-    geo: true,
+    code: "univ_immediate",
+    label: "大学・短大等への現役進学率",
+    group: "大学・短大",
+    annualCode: "0000000040",
+    ssds: { total: "E4701", male: "E470101", female: "E470102" },
   },
   {
-    code: "rented_private",
-    label: "民営借家",
-    group: "所有",
-    kind: "count",
-    countCode: "H1322",
-    rateCode: "#H0130202",
-    geo: true,
+    code: "univ_immediate_no_corr",
+    label: "大学・短大現役（通信除く）",
+    group: "大学・短大",
+    annualCode: "0000000050",
   },
   {
-    code: "detached",
-    label: "一戸建",
-    group: "建て方",
-    kind: "count",
-    countCode: "H1401",
-    rateCode: "#H01401",
-    geo: true,
+    code: "univ_jr",
+    label: "大学・短大進学率（過年度含む）",
+    group: "大学・短大",
+    annualCode: "0000000060",
   },
   {
-    code: "row",
-    label: "長屋建",
-    group: "建て方",
-    kind: "count",
-    countCode: "H1402",
-    rateCode: "#H01402",
-    geo: true,
+    code: "univ",
+    label: "大学（学部）進学率（過年度含む）",
+    group: "大学・短大",
+    annualCode: "0000000070",
   },
   {
-    code: "apartment",
-    label: "共同住宅",
-    group: "建て方",
-    kind: "count",
-    countCode: "H1403",
-    rateCode: "#H01403",
-    geo: true,
-  },
-  {
-    code: "floor_area",
-    label: "1住宅当たり延べ面積",
-    group: "広さ",
-    kind: "area",
-    countCode: "H2130",
-    geo: true,
+    code: "jr_college",
+    label: "短期大学進学率（過年度含む）",
+    group: "大学・短大",
+    annualCode: "0000000080",
   },
 ] as const;
 
-/** 形態ビューのカテゴリ（所有・建て方・畳数）。空き家種類は別途年次表。 */
-export const FORM_CODES: readonly FormCodeDef[] = [
-  { code: "owned", label: "持ち家", dim: "tenure", countCode: "H1310", level: 1 },
-  { code: "rented_public", label: "公営・UR・公社", dim: "tenure", countCode: "H1321", level: 1 },
-  { code: "rented_private", label: "民営借家", dim: "tenure", countCode: "H1322", level: 1 },
-  { code: "rented_issued", label: "給与住宅", dim: "tenure", countCode: "H1323", level: 1 },
-
-  { code: "detached", label: "一戸建", dim: "building", countCode: "H1401", level: 1 },
-  { code: "row", label: "長屋建", dim: "building", countCode: "H1402", level: 1 },
-  { code: "apartment", label: "共同住宅", dim: "building", countCode: "H1403", level: 1 },
-  { code: "other_build", label: "その他", dim: "building", countCode: "H1404", level: 1 },
-
-  { code: "tatami_lt6", label: "5.9畳以下", dim: "size", countCode: "H2101", level: 1 },
-  { code: "tatami_6_12", label: "6.0–11.9畳", dim: "size", countCode: "H2102", level: 1 },
-  { code: "tatami_12_18", label: "12.0–17.9畳", dim: "size", countCode: "H2103", level: 1 },
-  { code: "tatami_18_24", label: "18.0–23.9畳", dim: "size", countCode: "H2104", level: 1 },
-  { code: "tatami_24_30", label: "24.0–29.9畳", dim: "size", countCode: "H2105", level: 1 },
-  { code: "tatami_30_36", label: "30.0–35.9畳", dim: "size", countCode: "H2106", level: 1 },
-  { code: "tatami_36_48", label: "36.0–47.9畳", dim: "size", countCode: "H2107", level: 1 },
-  { code: "tatami_48p", label: "48.0畳以上", dim: "size", countCode: "H2108", level: 1 },
-
-  { code: "secondary", label: "二次的住宅", dim: "vacancy", level: 1 },
-  { code: "for_rent", label: "賃貸用", dim: "vacancy", level: 1 },
-  { code: "for_sale", label: "売却用", dim: "vacancy", level: 1 },
-  { code: "other_vacant", label: "その他の空き家", dim: "vacancy", level: 1 },
+export const SCHOOLS: readonly SchoolDef[] = [
+  { code: "kindergarten", label: "幼稚園", countCode: "E1501" },
+  { code: "kodomoen", label: "認定こども園", countCode: "E1701" },
+  { code: "elementary", label: "小学校", countCode: "E2501" },
+  { code: "junior_high", label: "中学校", countCode: "E3501" },
+  { code: "high_school", label: "高等学校", countCode: "E4501" },
+  { code: "junior_college", label: "短期大学", countCode: "E6301" },
+  { code: "university", label: "大学", countCode: "E6302" },
+  { code: "senmon", label: "専修学校", countCode: "E7201" },
 ] as const;
 
-export const FORM_DIMS: readonly { id: FormDim; label: string }[] = [
-  { id: "tenure", label: "所有" },
-  { id: "building", label: "建て方" },
-  { id: "size", label: "広さ" },
-  { id: "vacancy", label: "空き家" },
-] as const;
+/** 時代・男女ビューの表示年域。 */
+export const RATE_FROM = 1948;
+export const RATE_TO = 2023;
 
-/** 空き家種類：年次表ごとの生コード → 正規化コード。 */
-export const VACANT_CODE_MAP: Record<
-  string,
-  Partial<Record<"secondary" | "for_rent" | "for_sale" | "other_vacant" | "vacant_total", string>>
-> = {
-  "2013": {
-    vacant_total: "00008",
-    secondary: "00009",
-    for_rent: "00012",
-    for_sale: "00013",
-    other_vacant: "00014",
-  },
-  "2018": {
-    vacant_total: "22",
-    secondary: "221",
-    for_rent: "222",
-    for_sale: "223",
-    other_vacant: "224",
-  },
-  // 2023 は二次的とその他のコード意味が入れ替わっている（docs/data-sources.md）
-  "2023": {
-    vacant_total: "22",
-    secondary: "224",
-    for_rent: "222",
-    for_sale: "223",
-    other_vacant: "221",
-  },
-};
-
-export const SURVEY_YEARS = [
-  "1978",
-  "1983",
-  "1988",
-  "1993",
-  "1998",
-  "2003",
-  "2008",
-  "2013",
-  "2018",
-  "2023",
-] as const;
-
-export const VACANT_YEARS = ["2013", "2018", "2023"] as const;
+/** 学校種ビューの表示年域（SSDS）。 */
+export const SCHOOL_FROM = 1975;
+export const SCHOOL_TO = 2024;

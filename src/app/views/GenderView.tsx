@@ -1,9 +1,9 @@
 /**
- * 時代ビュー。進学率の長期推移。
+ * 男女ビュー。進学率の性別差。
  */
 
 import { use, useMemo, useState } from "react";
-import { loadEra } from "../data/chunks.ts";
+import { loadGender } from "../data/chunks.ts";
 import { listMetrics } from "../data/hierarchy.ts";
 import { MARKS, NOTES } from "../data/annotations.ts";
 import { TypeList } from "../components/TypeList.tsx";
@@ -16,6 +16,11 @@ const pct = new Intl.NumberFormat("ja-JP", {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
 });
+const signedPct = new Intl.NumberFormat("ja-JP", {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+  signDisplay: "exceptZero",
+});
 
 function dense(years: number[], values: (number | null)[]): Point[] {
   const byYear = new Map(years.map((y, i) => [y, values[i] ?? null]));
@@ -25,11 +30,11 @@ function dense(years: number[], values: (number | null)[]): Point[] {
   }));
 }
 
-export function EraView() {
-  const { metrics, cube, years } = use(loadEra());
+export function GenderView() {
+  const { metrics, cube, years } = use(loadGender());
   const selectable = useMemo(() => listMetrics(metrics), [metrics]);
   const defaultMetric =
-    selectable.find((m) => m.code === "univ_immediate")?.code ?? selectable[0]!.code;
+    selectable.find((m) => m.code === "univ")?.code ?? selectable[0]!.code;
 
   const [metric, setMetric] = useUrlState<string>("metric", defaultMetric, (v) =>
     selectable.some((c) => c.code === v),
@@ -43,25 +48,49 @@ export function EraView() {
     () =>
       selectable.map((c) => ({
         type: c,
-        values: cube.series("rate", "year", { metric: c.code }),
+        values: cube.series("gap", "year", { metric: c.code, sex: "total" }),
       })),
     [selectable, cube],
   );
 
   const panels = useMemo((): Panel[] => {
-    const rates = cube.series("rate", "year", { metric });
+    const male = cube.series("rate", "year", { metric, sex: "male" });
+    const female = cube.series("rate", "year", { metric, sex: "female" });
+    const gap = cube.series("gap", "year", { metric, sex: "total" });
+
     return [
       {
         key: "rate",
-        title: "進学率",
+        title: "進学率（男女）",
         unit: "％",
         format: (v) => `${pct.format(v * 100)}%`,
         formatTick: (v) => `${pct.format(v * 100)}%`,
         series: [
           {
-            key: "rate",
+            key: "male",
+            label: "男",
+            points: dense(years, male),
+            emphasized: false,
+          },
+          {
+            key: "female",
+            label: "女",
+            points: dense(years, female),
+            emphasized: true,
+          },
+        ],
+      },
+      {
+        key: "gap",
+        title: "差（女 − 男）",
+        unit: "ポイント",
+        format: (v) => `${signedPct.format(v * 100)}pt`,
+        formatTick: (v) => `${signedPct.format(v * 100)}`,
+        series: [
+          {
+            key: "gap",
             label: "",
-            points: dense(years, rates),
+            points: dense(years, gap),
             emphasized: true,
           },
         ],
@@ -79,7 +108,7 @@ export function EraView() {
           <TypeList rows={rows} years={years} selected={metric} onSelect={setMetric} />
         </div>
         <p className="px-2 pt-3 text-[10.5px] leading-relaxed text-faint">
-          折れ線は進学率の推移。高さは項目ごとに正規化してある。
+          左のスパークは男女差（女−男）の推移。プラスは女性が高い。
         </p>
       </aside>
 
@@ -95,7 +124,7 @@ export function EraView() {
           </div>
         </header>
 
-        <div ref={ref} className="min-h-[280px]">
+        <div ref={ref} className="min-h-[420px]">
           {width > 0 && (
             <TrendStack
               panels={panels}

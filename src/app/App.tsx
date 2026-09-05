@@ -1,9 +1,13 @@
+import { Suspense } from "react";
+import { EraView } from "./views/EraView.tsx";
+import { GenderView } from "./views/GenderView.tsx";
+import { SchoolView } from "./views/SchoolView.tsx";
 import { useUrlState } from "./hooks/useUrlState.ts";
 
 const VIEWS = [
-  { id: "era", label: "時代", hint: "進学率", ready: true },
+  { id: "era", label: "時代", hint: "1948–2023", ready: true },
   { id: "gender", label: "男女", hint: "性別差", ready: true },
-  { id: "school", label: "学校種", hint: "学校種別", ready: true },
+  { id: "school", label: "学校種", hint: "在学者", ready: true },
 ] as const;
 
 type ViewId = (typeof VIEWS)[number]["id"];
@@ -22,7 +26,7 @@ export function App() {
               日本人はどこまで学ぶようになったか
             </h1>
             <p className="text-[11px] text-muted">
-              学校基本調査
+              文部科学省「学校基本調査」（社会・人口統計体系経由含む）
             </p>
           </div>
           <nav className="flex gap-1 -mb-px" aria-label="ビュー">
@@ -49,16 +53,16 @@ export function App() {
         </div>
       </header>
 
-<main className="mx-auto w-full max-w-[1240px] px-6 py-16">
-  <p className="text-[13px] text-ink">「日本人はどこまで学ぶようになったか」のビュー実装は Phase 2 で進めます。</p>
-  <p className="mt-2 text-[12px] text-muted">
-    いまは骨格のみ。主な統計は「学校基本調査」。可視化の核: 高校・大学進学率、男女差、学校種別の変化
-  </p>
-  <p className="mt-4 text-[11px] text-faint">選択中のタブ: {view}</p>
-</main>
+      <Suspense key={view} fallback={<Loading />}>
+        {view === "era" && <EraView />}
+        {view === "gender" && <GenderView />}
+        {view === "school" && <SchoolView />}
+      </Suspense>
 
       <footer className="mx-auto w-full max-w-[1240px] px-6 pt-2 pb-10 text-[11px] leading-relaxed text-faint">
-        出典: 学校基本調査（詳細は docs/data-sources.md。表IDは調査後に確定）。
+        出典: 文部科学省「学校基本調査」（社会・人口統計体系「Ｅ　教育」経由含む、e-Stat）。
+        進学率は年次統計（1948–2016）を主とし、高校（通信制除く）と大学・短大現役は SSDS
+        で2023年まで延長。学校種は在学者数とその構成比。
         <a
           href="https://visualizing.jp/"
           className="mt-2 block w-fit transition-colors duration-150 hover:text-muted"
@@ -66,6 +70,14 @@ export function App() {
           visualizing.jp
         </a>
       </footer>
+    </div>
+  );
+}
+
+function Loading() {
+  return (
+    <div className="mx-auto w-full max-w-[1240px] px-6 py-16 text-[12px] text-faint">
+      読み込み中
     </div>
   );
 }

@@ -78,6 +78,15 @@ function niceMax(value: number): number {
   return 10 * mag;
 }
 
+/** 負値を含む系列向け。0 を跨ぐときは対称に寄せる。 */
+function niceDomain(values: number[]): [number, number] {
+  const lo = Math.min(0, ...values);
+  const hi = Math.max(0, ...values);
+  if (lo >= 0) return [0, niceMax(hi)];
+  const span = niceMax(Math.max(Math.abs(lo), hi));
+  return [-span, span];
+}
+
 function splitProjected(
   points: Point[],
   projectedFrom: number | undefined,
@@ -151,27 +160,27 @@ export function TrendStack({
       {panels.map((panel, pi) => {
         const top = pi * (HEADER_H + PLOT_H + GAP);
         const plotTop = top + HEADER_H;
-        const max = niceMax(
-          Math.max(
-            ...panel.series.flatMap((s) =>
-              s.points.map((p) => (p.value === null ? 0 : p.value)),
-            ),
-            0,
-          ),
+        const observed = panel.series.flatMap((s) =>
+          s.points.map((p) => p.value).filter((v): v is number => v !== null),
         );
-        const y = scaleLinear().domain([0, max]).range([plotTop + PLOT_H, plotTop]);
+        const [yMin, yMax] = niceDomain(observed);
+        const y = scaleLinear().domain([yMin, yMax]).range([plotTop + PLOT_H, plotTop]);
         const pathD = (points: Point[]) => seriesPathD(points, (year) => x(year), (v) => y(v));
+        const yTicks =
+          yMin < 0 ? [yMin, 0, yMax] : [0, yMax / 2, yMax];
 
         const readYear = hoverYear;
-        const readout = panel.series
-          .filter((s) => s.emphasized)
-          .map((s) => {
-            const p =
-              readYear === null
-                ? [...s.points].reverse().find((q) => q.value !== null)
-                : s.points.find((q) => q.year === readYear);
-            return { key: s.key, label: s.label, point: p ?? null };
-          });
+        const readoutSeries =
+          panel.series.length > 1
+            ? panel.series
+            : panel.series.filter((s) => s.emphasized);
+        const readout = readoutSeries.map((s) => {
+          const p =
+            readYear === null
+              ? [...s.points].reverse().find((q) => q.value !== null)
+              : s.points.find((q) => q.year === readYear);
+          return { key: s.key, label: s.label, point: p ?? null };
+        });
 
         return (
           <g key={panel.key}>
@@ -197,14 +206,14 @@ export function TrendStack({
               ))}
             </text>
 
-            {[0, max / 2, max].map((v) => (
+            {yTicks.map((v) => (
               <g key={v}>
                 <line
                   x1={M.left}
                   x2={width - M.right}
                   y1={y(v)}
                   y2={y(v)}
-                  className="stroke-rule"
+                  className={v === 0 && yMin < 0 ? "stroke-rule-strong" : "stroke-rule"}
                   strokeWidth={1}
                 />
                 <text
