@@ -3,6 +3,7 @@ import { EraView } from "./views/EraView.tsx";
 import { GenderView } from "./views/GenderView.tsx";
 import { SchoolView } from "./views/SchoolView.tsx";
 import { useUrlState } from "./hooks/useUrlState.ts";
+import { SeriesBar, SeriesFooter } from "./components/Brand.tsx";
 
 const VIEWS = [
   { id: "era", label: "時代", hint: "1948–2023", ready: true },
@@ -20,6 +21,7 @@ export function App() {
   return (
     <div className="min-h-dvh">
       <header className="border-b border-rule bg-paper/85 backdrop-blur-sm">
+        <SeriesBar />
         <div className="mx-auto flex w-full max-w-[1240px] flex-wrap items-end justify-between gap-4 px-6 pt-5">
           <div>
             <h1 className="text-[15px] font-semibold tracking-tight">
@@ -63,12 +65,7 @@ export function App() {
         出典: 文部科学省「学校基本調査」（社会・人口統計体系「Ｅ　教育」経由含む、e-Stat）。
         進学率は年次統計（1948–2016）を主とし、高校（通信制除く）と大学・短大現役は SSDS
         で2023年まで延長。学校種は在学者数とその構成比。
-        <a
-          href="https://visualizing.jp/"
-          className="mt-2 block w-fit transition-colors duration-150 hover:text-muted"
-        >
-          visualizing.jp
-        </a>
+        <SeriesFooter />
       </footer>
     </div>
   );
